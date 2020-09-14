@@ -1,10 +1,3 @@
-"""empty message
-
-Revision ID: 642d3190e41b
-Revises: 852931557852
-Create Date: 2020-09-05 17:46:27.266366
-
-"""
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
