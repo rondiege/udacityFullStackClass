@@ -14,17 +14,17 @@ cursor.execute('''
 
 SQL = 'INSERT INTO table2 (id, completed) VALUES (%(id)s, %(completed)s);'
 data = {
-  'id': 4,
-  'completed' : False
+    'id': 4,
+    'completed': False
 }
 
 cursor.execute('INSERT INTO table2 (id, completed) VALUES (1, true);')
 cursor.execute('INSERT INTO table2 (id, completed) VALUES (%s, %s)', (2, True))
 cursor.execute('INSERT INTO table2 (id, completed)' +
-' VALUES (%(id)s, %(completed)s);', {
-  'id': 3,
-  'completed' : False
-})
+               ' VALUES (%(id)s, %(completed)s);', {
+                   'id': 3,
+                   'completed': False
+               })
 
 cursor.execute(SQL, data)
 
@@ -33,7 +33,7 @@ cursor.execute('SELECT * FROM table2')
 result1 = cursor.fetchall()
 
 for x in result1:
-   print(x)
+    print(x)
 # print('fetchall tupal:', result1)
 
 connection.commit()
