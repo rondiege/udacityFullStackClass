@@ -261,8 +261,6 @@ def create_venue_form():
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
     # insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
-
     try:
         venue = Venue(name=request.form['name'], city=request.form['city'],
                       state=request.form['state'], address=request.form['address'],
@@ -481,12 +479,30 @@ def create_artist_submission():
     # TODO: insert form data as a new Venue record in the db, instead
     # TODO: modify data to be the data object returned from db insertion
 
-    # on successful db insert, flash success
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
+
     # TODO: on unsuccessful db insert, flash an error instead.
     # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-    return render_template('pages/home.html')
 
+    print(request.form)
+    # print(request.form.getlist('name'))
+    sys.stdout.flush()
+    try:
+        # ImmutableMultiDict([('name', 'The Maxtastics'), ('city', 'Pflug'), ('state', 'AL'), ('phone', '33333333333'), ('genres', 'Classical'), ('facebook_link', 'face.com')])
+        artist = Artist(name=request.form['name'], city=request.form['city'],
+                        state=request.form['state'], phone=request.form['phone'],
+                        genres=request.form['genres'], facebook_link=request.form['facebook_link'])
+        db.session.add(artist)
+        db.session.commit()
+        # on successful db insert, flash success
+        flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    except:
+        db.session.rollback()
+        print(sys.exc_info())
+        # On unsuccessful db insert, flash an error instead.
+        flash('There was an issue listing your artist.')
+    finally:
+        db.session.close()
+    return render_template('pages/home.html')
 
 #  Shows
 #  ----------------------------------------------------------------
