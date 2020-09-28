@@ -342,6 +342,7 @@ def show_artist(artist_id):
         "city": artist.city,
         "state": artist.state,
         "phone": artist.phone,
+        "facebook_link": artist.facebook_link,
         "seeking_venue": artist.seeking_venue,
         "image_link": artist.image_link,
         "past_shows": format_shows(pastShows),
@@ -359,20 +360,8 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
     form = ArtistForm()
-    artist = {
-        "id": 4,
-        "name": "Guns N Petals",
-        "genres": ["Rock n Roll"],
-        "city": "San Francisco",
-        "state": "CA",
-        "phone": "326-123-5000",
-        "website": "https://www.gunsnpetalsband.com",
-        "facebook_link": "https://www.facebook.com/GunsNPetals",
-        "seeking_venue": True,
-        "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-        "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
-    }
-    # TODO: populate form with fields from artist with ID <artist_id>
+    artist = Artist.query.filter(Artist.id == artist_id).one()
+
     return render_template('forms/edit_artist.html', form=form, artist=artist)
 
 
@@ -380,6 +369,27 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
     # TODO: take values from the form submitted, and update existing
     # artist record with ID <artist_id> using the new attributes
+
+    try:
+        artist = Artist.query.get(artist_id)
+
+        artist.name = request.form['name']
+        artist.city = request.form['city']
+        artist.state = request.form['state']
+        artist.phone = request.form['phone']
+        artist.genres = request.form['genres']
+        artist.facebook_link  = request.form['facebook_link']
+
+        db.session.commit()
+        flash('Artist ' + request.form['name'] + ' was successfully updated!')
+    except:
+        db.session.rollback()
+        sucess = False
+        print(sys.exc_info())
+        sys.stdout.flush()
+        flash('Artist ' + request.form['name'] + ' was NOT updated.')
+    finally:
+        db.session.close()
 
     return redirect(url_for('show_artist', artist_id=artist_id))
 
