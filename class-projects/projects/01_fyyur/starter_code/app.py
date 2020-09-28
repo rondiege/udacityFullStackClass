@@ -6,7 +6,7 @@ import json
 import dateutil.parser
 import babel
 import sys
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, Response, flash, redirect, url_for, jsonify
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -15,6 +15,7 @@ from flask_wtf import Form
 from forms import *
 from flask_migrate import Migrate
 from datetime import datetime
+from dataclasses import dataclass
 # ----------------------------------------------------------------------------#
 # App Config.
 # ----------------------------------------------------------------------------#
@@ -64,9 +65,16 @@ class Venue(db.Model):
     # def __repr__(self):
     #     return f'<Venue - id: {self.id} Name: {self.name}, City: {self.city} >'
 
-
+@dataclass
 class Artist(db.Model):
     __tablename__ = 'artists'
+    id: int
+    name: str
+    address: str
+    city: str
+    phone: str
+    genres: str
+    facebook_link: str
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
@@ -153,14 +161,21 @@ def search_venues():
     # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
     # seach for Hop should return "The Musical Hop".
     # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
+
+    term = request.form.get('search_term', '')
+    match = Venue.query.filter(Venue.name.ilike("%"+term+"%")).all()
     response = {
-        "count": 1,
-        "data": [{
-            "id": 2,
-            "name": "The Dueling Pianos Bar",
-            "num_upcoming_shows": 0,
-        }]
+        "count": len(match),
+        "data": match
     }
+    # response = {
+    #     "count": 1,
+    #     "data": [{
+    #         "id": 2,
+    #         "name": "The Dueling Pianos Bar",
+    #         "num_upcoming_shows": 0,
+    #     }]
+    # }
     return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 
@@ -272,7 +287,6 @@ def create_venue_submission():
         flash('Venue ' + request.form['name'] + ' was successfully listed!')
     except:
         db.session.rollback()
-        error=True
         print(sys.exc_info())
         # On unsuccessful db insert, flash an error instead.
         flash('There was an issue posting your venue.')
@@ -296,38 +310,24 @@ def delete_venue(venue_id):
 
 @app.route('/artists')
 def artists():
-    # TODO: replace with real data returned from querying the database
-    data = [{
-        "id": 4,
-        "name": "Guns N Petals",
-    }, {
-        "id": 5,
-        "name": "Matt Quevedo",
-    }, {
-        "id": 6,
-        "name": "The Wild Sax Band",
-    }]
-    return render_template('pages/artists.html', artists=data)
+
+    artists = Artist.query.all()
+    return render_template('pages/artists.html', artists=Artist.query.all())
 
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-    # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
-    # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
-    # search for "band" should return "The Wild Sax Band".
+    term = request.form.get('search_term', '')
+    match = Artist.query.filter(Artist.name.ilike("%"+term+"%")).all()
     response = {
-        "count": 1,
-        "data": [{
-            "id": 4,
-            "name": "Guns N Petals",
-            "num_upcoming_shows": 0,
-        }]
+        "count": len(match),
+        "data": match
     }
     return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
-
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
+
     # shows the venue page with the given venue_id
     # TODO: replace with real venue data from the venues table, using venue_id
     data1 = {
@@ -475,17 +475,6 @@ def create_artist_form():
 
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
-    # called upon submitting the new artist listing form
-    # TODO: insert form data as a new Venue record in the db, instead
-    # TODO: modify data to be the data object returned from db insertion
-
-
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
-
-    print(request.form)
-    # print(request.form.getlist('name'))
-    sys.stdout.flush()
     try:
         # ImmutableMultiDict([('name', 'The Maxtastics'), ('city', 'Pflug'), ('state', 'AL'), ('phone', '33333333333'), ('genres', 'Classical'), ('facebook_link', 'face.com')])
         artist = Artist(name=request.form['name'], city=request.form['city'],
@@ -560,14 +549,22 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-    # called to create new shows in the db, upon submitting new show listing form
-    # TODO: insert form data as a new Show record in the db, instead
+    try:
+        show = Show(artist_id=request.form['artist_id'],
+                    venue_id=request.form['venue_id'],
+                    date=request.form['start_time'])
+        db.session.add(show)
+        db.session.commit()
+        # on successful db insert, flash success
+        flash('Show was successfully listed!')
+    except:
+        db.session.rollback()
+        print(sys.exc_info())
+        # On unsuccessful db insert, flash an error instead.
+        flash('An error occurred. Show could not be listed.')
+    finally:
+        db.session.close()
 
-    # on successful db insert, flash success
-    flash('Show was successfully listed!')
-    # TODO: on unsuccessful db insert, flash an error instead.
-    # e.g., flash('An error occurred. Show could not be listed.')
-    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     return render_template('pages/home.html')
 
 
