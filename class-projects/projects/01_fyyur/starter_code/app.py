@@ -153,17 +153,13 @@ def venues():
         indexKey = v.city+v.state
         if indexKey not in cityStateIndex:
             cityStateIndex[indexKey] = len(data);
-            data.append({"city":v.city, "state": v.state,"venues": [{}]});
+            data.append({"city":v.city, "state": v.state,"venues": []});
 
         # find num show first
         numComingShows = 0
         for s in shows:
             if s.venue_id == v.id:
-                print(s[1])
-                sys.stdout.flush()
                 numComingShows = s[1]
-
-
 
         data[cityStateIndex[indexKey]]['venues'].append({"id": v.id, "name": v.name, "num_upcoming_shows": numComingShows,})
 
@@ -246,14 +242,23 @@ def create_venue_submission():
     return render_template('pages/home.html')
 
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<venue_id>/delete')
 def delete_venue(venue_id):
-    # TODO: Complete this endpoint for taking a venue_id, and using
     # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
+    try:
+        Venue.query.filter_by(id=venue_id).delete()
+        db.session.commit()
+        flash('Venue ' + venue_id + ' was successfully deleted!')
+    except:
+        db.session.rollback()
+        print(sys.exc_info())
+        flash('Venue ' + venue_id + ' was NOT deleted.')
+    finally:
+        db.session.close()
 
     # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
     # clicking that button delete it from the db then redirect the user to the homepage
-    return None
+    return render_template('pages/home.html')
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -387,7 +392,6 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
     try:
-        # ImmutableMultiDict([('name', 'The Maxtastics'), ('city', 'Pflug'), ('state', 'AL'), ('phone', '33333333333'), ('genres', 'Classical'), ('facebook_link', 'face.com')])
         artist = Artist(name=request.form['name'], city=request.form['city'],
                         state=request.form['state'], phone=request.form['phone'],
                         genres=request.form['genres'], facebook_link=request.form['facebook_link'])
@@ -425,7 +429,7 @@ def shows():
             "artist_image_link": s[4],
             "start_time": s[5]
         })
-    
+
     return render_template('pages/shows.html', shows=data)
 
 
