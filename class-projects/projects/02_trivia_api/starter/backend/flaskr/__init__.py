@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, abort, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, get_debug_queries
+from  sqlalchemy.sql.expression import func
 from flask_cors import CORS
 import random
 import sys
@@ -154,16 +155,42 @@ def create_app(test_config=None):
 
 
   '''
-  @TODO:
-  Create a POST endpoint to get questions to play the quiz.
-  This endpoint should take category and previous question parameters
+  A POST endpoint to get questions to play the quiz.
+  This endpoint takes category and previous question parameters
   and return a random questions within the given category,
   if provided, and that is not one of the previous questions.
-
-  TEST: In the "Play" tab, after a user selects "All" or a category,
-  one question at a time is displayed, the user is allowed to answer
-  and shown whether they were correct or not.
   '''
+  @app.route('/quizzes', methods=['POST'])
+  def take_quiz():
+      body = request.get_json()
+      category = body.get('quiz_category', None)
+      prev_questions = body.get('previous_questions', None)
+
+      question = Question.query
+
+      # This means it is not any category, but a specific one
+      # Also would be smart to verify the category exsits
+      if category["id"] != 0:
+          question = question.filter(Question.category == category["id"])
+
+      if prev_questions:
+          # generates a not in clause
+          question = question.filter(~Question.id.in_(prev_questions))
+
+      # first() returns None if there is nothing there to be selected
+      question = question.order_by(func.random()).limit(1).first()
+
+      if question is not None:
+          return jsonify({"success": True,
+                          "question": question.format(),
+                          "previous_questions": prev_questions,
+                          "quiz_category": category})
+      else:
+          return jsonify({"success": True,
+                          "question": "Phew, good work. You answered all the questions in that categoty."
+                                    + " Try another category!",
+                          "previous_questions": previous_questions,
+                          "quiz_category": quiz_category})
 
   '''
   @TODO:
