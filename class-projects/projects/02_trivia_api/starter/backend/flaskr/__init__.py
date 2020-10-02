@@ -15,22 +15,17 @@ def create_app(test_config=None):
   setup_db(app)
   CORS(app)
 
-  '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
-  '''
+  # Set up CORS. Allow '*' for origins.
   CORS(app, resources={r"/*": {"origins": "*"}})
-  '''
-  @TODO: Use the after_request decorator to set Access-Control-Allow
-  '''
+
+  # Use the after_request decorator to set Access-Control-Allow
   @app.after_request
   def after_request(response):
-        """
-        After request is received, add headers and allow the following methods
-        """
         response.headers.add('Access-Control-Allow', 'Content-Type, ''Authorization')
         response.headers.add('Access-Control-Allow', 'GET, POST, PATCH, DELETE, OPTIONS')
         return response
 
+#  Does the pagination for questions
   def paginate(request, selection):
 	  page = request.args.get('page', 1, type=int)
 	  start =  (page - 1) * QUESTIONS_PER_PAGE
@@ -41,10 +36,7 @@ def create_app(test_config=None):
 
 	  return current_questions
 
-  '''
-  Create an endpoint to handle GET requests
-  for all available categories.
-  '''
+  # An endpoint to handle GET requestsfor all available categories.
   @app.route('/categories', methods=['GET'])
   def get_all_categories():
 	  categories = Category.query.all()
@@ -58,11 +50,9 @@ def create_app(test_config=None):
 	})
 
   '''
-  Create an endpoint to handle GET requests for questions,
+  An endpoint that handles GET requests for questions,
   including pagination (every 10 questions).
-  This endpoint should return a list of questions,
-  number of total questions, current category, categories.
-
+  Returns a list of questions, number of total questions, current category, categories.
   '''
   @app.route('/questions', methods=['GET'])
   def get_all_questions():
@@ -82,23 +72,34 @@ def create_app(test_config=None):
 		  'current_category': None
 	})
 
-  '''
-  @TODO:
-  Create an endpoint to DELETE question using a question ID.
 
-  TEST: When you click the trash icon next to a question, the question will be removed.
-  This removal will persist in the database and when you refresh the page.
-  '''
+  # An endpoint that allows DELETE of a question using a question ID.
+  @app.route('/questions/<int:question_id>', methods=['DELETE'])
+  def delete_question(question_id):
+	  try:
+		  question = Question.query.filter(Question.id == question_id).one_or_none()
+
+		  if question is None:
+			  abort(404)
+
+		  question.delete()
+
+		  selection = Question.query.order_by(Question.id).all()
+		  current_questions = paginate(request, selection)
+
+		  return jsonify({
+	        'success': True,
+	        'deleted': question_id,
+	        'questions': current_questions,
+	        'total_questions': len(Question.query.all())
+	      })
+
+	  except:
+		  abort(422, description="Unprocessable")
 
   '''
-  @TODO:
-  Create an endpoint to POST a new question,
-  which will require the question and answer text,
-  category, and difficulty score.
-
-  TEST: When you submit a question on the "Add" tab,
-  the form will clear and the question will appear at the end of the last page
-  of the questions list in the "List" tab.
+  An endpoint that allow POST of a new question, which requires the question
+  and answer text, category, and difficulty score.
   '''
   @app.route('/questions', methods=['POST'])
   def add_question():
@@ -116,14 +117,10 @@ def create_app(test_config=None):
 		  question = Question(question=question, answer=answer, difficulty=difficulty, category=category)
 		  question.insert()
 	  except:
-		  # db.session.rollback()
 		  sucess = False
 		  print(sys.exc_info())
 		  sys.stdout.flush()
-		  abort(422, description="Unprocessable\n"+sys.exc_info())
-
-	  # finally:
-		  # db.session.close()
+		  abort(422, description="Unprocessable")
 
 	  selection = Question.query.order_by(Question.id).all()
 	  current_questions = paginate(request, selection)
