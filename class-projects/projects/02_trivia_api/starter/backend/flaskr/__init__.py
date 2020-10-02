@@ -3,6 +3,7 @@ from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
+import sys
 
 from models import setup_db, Question, Category
 
@@ -12,62 +13,56 @@ def create_app(test_config=None):
   # create and configure the app
   app = Flask(__name__)
   setup_db(app)
+  CORS(app)
 
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-
+  CORS(app, resources={r"/*": {"origins": "*"}})
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
-  @app.route('/')
-  def hello():
-	  return jsonify({"message": "hello. I love you."})
-# @app.after_request
-# def after_request(response):
-#   response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,true')
-#   response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-#   return response
+  @app.after_request
+  def after_request(response):
+        """
+        After request is received, add headers and allow the following methods
+        """
+        response.headers.add('Access-Control-Allow', 'Content-Type, ''Authorization')
+        response.headers.add('Access-Control-Allow', 'GET, POST, PATCH, DELETE, OPTIONS')
+        return response
 
   def paginate(request, selection):
-      page = request.args.get('page', 1, type=int)
-      start =  (page - 1) * QUESTIONS_PER_PAGE
-      end = start + QUESTIONS_PER_PAGE
+	  page = request.args.get('page', 1, type=int)
+	  start =  (page - 1) * QUESTIONS_PER_PAGE
+	  end = start + QUESTIONS_PER_PAGE
 
-      questions = [question.format() for question in selection]
-      current_questions = questions[start:end]
+	  questions = [question.format() for question in selection]
+	  current_questions = questions[start:end]
 
-      return current_questions
+	  return current_questions
 
   '''
-  @TODO:
   Create an endpoint to handle GET requests
   for all available categories.
   '''
   @app.route('/categories', methods=['GET'])
   def get_all_categories():
-	  page = request.args.get('page', 1, type=int)
-	  categories = Question.query.all()
+	  categories = Category.query.all()
 
-	  selectedCategories = paginate(request, categories)
+	  categories = {category.id: category.type for category in categories}
 
 	  return jsonify({
-	  	  'success': True,
-		  'questions' : selectedCategories,
-		  'total_questions' : len(selectedCategories)
+		  'success': True,
+		  'categories' : categories,
+		  'total_categories' : len(categories)
 	})
 
   '''
-  @TODO:
   Create an endpoint to handle GET requests for questions,
   including pagination (every 10 questions).
   This endpoint should return a list of questions,
   number of total questions, current category, categories.
 
-  TEST: At this point, when you start the application
-  you should see questions and categories generated,
-  ten questions per page and pagination at the bottom of the screen for three pages.
-  Clicking on the page numbers should update the questions.
   '''
   @app.route('/questions', methods=['GET'])
   def get_all_questions():
@@ -77,13 +72,12 @@ def create_app(test_config=None):
 	  selectedQuestion = paginate(request, questions)
 
 	  categories = Category.query.all()
-	  # formatted_cat = [category.format() for category in categories]
 	  formatted_cat = {category.id: category.type for category in categories}
 
 	  return jsonify({
-	  	  'success': True,
+		  'success': True,
 		  'questions' : selectedQuestion,
-		  'total_questions' : len(selectedQuestion),
+		  'total_questions' : len(questions),
 		  'categories' : formatted_cat,
 		  'current_category': None
 	})
@@ -106,6 +100,40 @@ def create_app(test_config=None):
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.
   '''
+  @app.route('/questions', methods=['POST'])
+  def add_question():
+	  print(request.get_json())
+	  sys.stdout.flush()
+	  body = request.get_json()
+
+	  question = body.get('question', None)
+	  answer = body.get('answer', None)
+	  difficulty = body.get('difficulty', None)
+	  category = body.get('category', None)
+
+	  success = True
+	  try:
+		  question = Question(question=question, answer=answer, difficulty=difficulty, category=category)
+		  question.insert()
+	  except:
+		  # db.session.rollback()
+		  sucess = False
+		  print(sys.exc_info())
+		  sys.stdout.flush()
+		  abort(422, description="Unprocessable\n"+sys.exc_info())
+
+	  # finally:
+		  # db.session.close()
+
+	  selection = Question.query.order_by(Question.id).all()
+	  current_questions = paginate(request, selection)
+
+	  return jsonify({
+		'success': True,
+		'created': question.id,
+		'questions': current_questions,
+		'total_questions': len(Question.query.all())
+	  })
 
   '''
   @TODO:
