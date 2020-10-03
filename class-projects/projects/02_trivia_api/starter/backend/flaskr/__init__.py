@@ -57,7 +57,6 @@ def create_app(test_config=None):
   '''
   @app.route('/questions', methods=['GET'])
   def get_all_questions():
-	  page = request.args.get('page', 1, type=int)
 	  questions = Question.query.all()
 
 	  selectedQuestion = paginate(request, questions)
@@ -65,13 +64,11 @@ def create_app(test_config=None):
 	  categories = Category.query.all()
 	  formatted_cat = {category.id: category.type for category in categories}
 
-	  return jsonify({
-		  'success': True,
-		  'questions' : selectedQuestion,
-		  'total_questions' : len(questions),
-		  'categories' : formatted_cat,
-		  'current_category': None
-	})
+	  return jsonify({'success': True,
+					  'questions' : selectedQuestion,
+					  'total_questions' : len(questions),
+					  'categories' : formatted_cat,
+					  'current_category': None})
 
 
   # An endpoint that allows DELETE of a question using a question ID.
@@ -144,15 +141,23 @@ def create_app(test_config=None):
   Try using the word "title" to start.
   '''
 
-  '''
-  @TODO:
-  Create a GET endpoint to get questions based on category.
 
-  TEST: In the "List" tab / main screen, clicking on one of the
-  categories in the left column will cause only questions of that
-  category to be shown.
   '''
+  A GET endpoint to get questions based on category.
+  '''
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
+  def get_questions_by_category(category_id):
+      questions = Question.query.filter(Question.category==category_id).all()
 
+      if len(questions) == 0:
+          abort(404)
+
+      selectedQuestion = paginate(request, questions)
+
+      return jsonify({'success': True,
+                      'questions' : selectedQuestion,
+                      'total_questions' : len(questions),
+                      'current_category': category_id})
 
   '''
   A POST endpoint to get questions to play the quiz.
