@@ -44,11 +44,9 @@ def create_app(test_config=None):
 
 	  categories = {category.id: category.type for category in categories}
 
-	  return jsonify({
-		  'success': True,
-		  'categories' : categories,
-		  'total_categories' : len(categories)
-	})
+	  return jsonify({'success': True,
+					  'categories' : categories,
+					  'total_categories' : len(categories)})
 
   '''
   An endpoint that handles GET requests for questions,
@@ -85,12 +83,10 @@ def create_app(test_config=None):
 		  selection = Question.query.order_by(Question.id).all()
 		  current_questions = paginate(request, selection)
 
-		  return jsonify({
-	        'success': True,
-	        'deleted': question_id,
-	        'questions': current_questions,
-	        'total_questions': len(Question.query.all())
-	      })
+		  return jsonify({'success': True,
+			   	          'deleted': question_id,
+				          'questions': current_questions,
+				          'total_questions': len(Question.query.all())})
 
 	  except:
 		  abort(422, description="Unprocessable")
@@ -104,9 +100,12 @@ def create_app(test_config=None):
 	  body = request.get_json()
 
 	  question = body.get('question', None)
-	  answer = body.get('answer', None)
-	  difficulty = body.get('difficulty', None)
-	  category = body.get('category', None)
+	  answer = body.get('answer')
+	  difficulty = body.get('difficulty')
+	  category = body.get('category')
+
+	  if(not question or not answer or not difficulty or not category):
+		  abort(422, description="Unprocessable")
 
 	  success = True
 	  try:
@@ -149,7 +148,7 @@ def create_app(test_config=None):
       categories = Category.query.all()
       formatted_cat = {category.id: category.type for category in categories}
 
-      return jsonify({"success": "True",
+      return jsonify({"success": True,
                       "questions": selectedQuestion,
                       "total_questions": len(questions),
                       "categories": formatted_cat,
@@ -210,11 +209,6 @@ def create_app(test_config=None):
                           "previous_questions": previous_questions,
                           "quiz_category": quiz_category})
 
-  '''
-  @TODO:
-  Create error handlers for all expected errors
-  including 404 and 422.
-  '''
   @app.errorhandler(404)
   def not_found(error):
       return jsonify({"success": False,
@@ -222,9 +216,10 @@ def create_app(test_config=None):
                       "message": "Nope not here."}), 404
 
   @app.errorhandler(422)
-  def not_found(error):
+  def unprocessable(error):
       return jsonify({"success": False,
                       "error": 422,
-                      "message": error}), 422
+                      "message": "Unprocessable"}), 422
+
 
   return app
